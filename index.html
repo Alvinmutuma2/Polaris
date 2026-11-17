@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polaris Deni: daftari la deni na vitabu vya duka, bila malipo</title>
+<meta name="description" content="Polaris Deni ni daftari la deni la bure kwa maduka ya Kenya. Rekodi deni, tuma ujumbe wa WhatsApp, funga siku na upate taarifa za PDF. A free debt book and daily shop books for Kenyan shops.">
+<meta name="theme-color" content="#0E1525">
+<meta property="og:title" content="Polaris Deni">
+<meta property="og:description" content="Daftari la deni na vitabu vya duka, bila malipo. The free debt book for Kenyan shops.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
+<script src="config.js" defer></script>
+<style>
+/* Layout idea: one narrow column, one question or one number per screen, one main button. */
+:root{
+  --ground:#F7F7F4; --surface:#FFFFFF; --ink:#0E1525; --muted:#5F6676; --line:#DEDFDA;
+  --accent:#D9500A; --on-accent:#FFFFFF;
+  --ok:#17794A; --ok-bg:#E2F3EA; --wait:#8A5A00; --wait-bg:#FBEFD2;
+  --display:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0E1525; --surface:#1A2233; --ink:#F3F0EA; --muted:#9DA2B0; --line:#2B3650;
+    --accent:#F26207; --on-accent:#1A0D02;
+    --ok:#6FD3A0; --ok-bg:#12382A; --wait:#F2C15C; --wait-bg:#3D2F0C;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1525; --surface:#1A2233; --ink:#F3F0EA; --muted:#9DA2B0; --line:#2B3650;
+  --accent:#F26207; --on-accent:#1A0D02;
+  --ok:#6FD3A0; --ok-bg:#12382A; --wait:#F2C15C; --wait-bg:#3D2F0C;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
+#app{max-width:440px;margin:0 auto;padding:16px 20px 40px;display:flex;flex-direction:column;gap:18px;min-height:100%}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.brand{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.04em}
+.brand i{color:var(--accent);font-style:normal}
+.back{background:none;border:1px solid var(--line);color:var(--ink);font:500 15px var(--body);padding:9px 14px;border-radius:8px;cursor:pointer}
+.sub{color:var(--muted);font-size:15px;margin:0}
+h1{font:600 26px/1.2 var(--body);margin:0;text-wrap:balance;overflow-wrap:anywhere}
+h2{font:600 14px var(--body);margin:6px 0 0;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stack{display:flex;flex-direction:column;gap:10px}
+.big{font:600 40px/1.05 var(--display);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.big small{font:500 15px var(--body);color:var(--muted);display:block;margin-bottom:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;border-radius:10px;padding:15px 16px;font:600 17px var(--body);cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.quiet{background:none;font-weight:500;font-size:15px;padding:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.addrow{display:grid;grid-template-columns:1fr auto;gap:10px}
+.addrow .btn{width:auto;padding:14px 18px}
+label{font:500 15px var(--body);color:var(--muted);display:flex;flex-direction:column;gap:6px}
+input{font:500 19px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;width:100%;min-width:0}
+input.num{font-family:var(--display);font-variant-numeric:tabular-nums}
+input[type=file]{font-size:14px;padding:10px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);font:500 16px var(--body);text-align:left;width:100%}
+button.item{cursor:pointer}
+.item:first-child{border-top:0}
+.item .l{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.item .l span{color:var(--muted);font-size:13px;font-weight:400}
+.item .r{font:600 16px var(--display);font-variant-numeric:tabular-nums;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.item .x{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;flex:none}
+.tk{width:36px;height:36px;border-radius:99px;border:2px solid var(--line);background:none;color:transparent;font-size:18px;line-height:1;cursor:pointer;flex:none}
+.tk.on{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.tk.ghost{visibility:hidden}
+.rowb{flex:1;display:flex;align-items:center;justify-content:space-between;gap:12px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:0;min-width:0}
+.chip{font:600 11px var(--body);padding:3px 8px;border-radius:99px;letter-spacing:.02em;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.wait{background:var(--wait-bg);color:var(--wait)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);padding:12px 10px;border-radius:99px;cursor:pointer}
+.chips button.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:15px;color:var(--muted)}
+.kv b{font:600 15px var(--display);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv.t{border-top:1px solid var(--line);padding-top:8px;color:var(--ink);font-weight:600}
+.msg{white-space:pre-wrap;font-size:16px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:14px;overflow-wrap:anywhere}
+.note{font-size:13px;color:var(--muted);margin:0}
+.err{color:var(--accent);font-size:14px;font-weight:500;margin:0;min-height:1em}
+.banner{background:var(--wait-bg);color:var(--wait);border-radius:10px;padding:10px 14px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.banner button{background:none;border:0;color:inherit;font:600 14px var(--body);text-decoration:underline;cursor:pointer;padding:0}
+.procard{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;cursor:pointer;background:var(--surface);color:var(--ink);border:1px solid var(--accent);border-left:5px solid var(--accent);border-radius:12px;padding:14px 16px;font:500 15px var(--body)}
+.procard span{display:flex;flex-direction:column;gap:2px}.procard b{font-weight:600;font-size:16px}.procard small{color:var(--muted);font-size:13px}.procard i{font-style:normal;font-weight:600;color:var(--accent);white-space:nowrap}
+.stage{position:relative;height:238px;perspective:900px;overflow:hidden}
+.site{position:absolute;left:19%;top:14px;width:62%;height:200px;padding:0;border:0;border-radius:10px;background:#FFFFFF;color:#14181F;overflow:hidden;cursor:pointer;text-align:left;font-family:var(--body);box-shadow:0 14px 34px rgba(0,0,0,.35);transition:transform .7s ease,opacity .7s ease;display:flex;flex-direction:column}
+.site.p0{transform:translateX(0) translateZ(0) rotateY(0);opacity:1;z-index:3}
+.site.p1{transform:translateX(48%) translateZ(-170px) rotateY(-34deg);opacity:.8;z-index:2}
+.site.p2{transform:translateX(-48%) translateZ(-170px) rotateY(34deg);opacity:.8;z-index:1}
+@media (prefers-reduced-motion: reduce){.site{transition:none}}
+.s-bar{display:flex;align-items:center;gap:4px;padding:6px 8px;background:#E9EAEE}.s-bar s{width:6px;height:6px;border-radius:9px;background:#B5B8C2}.s-bar q{flex:1;height:8px;border-radius:9px;background:#FFFFFF;margin-left:6px}
+.s-bar q::before,.s-bar q::after{content:none}
+.s-hero{color:#FFFFFF;padding:14px 12px;display:flex;flex-direction:column;gap:4px}.s-hero b{font-size:15px;font-weight:600}.s-hero span{font-size:10px;opacity:.9}.s-hero i{font-style:normal;font-size:10px;font-weight:600;padding:5px 9px;border-radius:6px;align-self:flex-start;margin-top:6px}
+.s-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px}.s-row u{height:44px;border-radius:6px;background:#E3E7E1}
+.s-chips{display:flex;gap:5px;flex-wrap:wrap;padding:10px}.s-chips em{font-style:normal;font-size:10px;font-weight:600;padding:5px 8px;border-radius:99px;background:#F6E4EC;color:#5A0F37}
+.s-list{padding:8px 10px;display:flex;flex-direction:column;gap:4px}.s-list p{margin:0;display:flex;justify-content:space-between;font-size:10px;border-bottom:1px solid #E6E8EE;padding-bottom:4px}.s-list b{font-family:var(--display)}
+.step{display:flex;gap:14px;align-items:center;text-align:left;width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:500 15px var(--body)}
+.step.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.step .n{font:600 14px var(--display);width:30px;height:30px;border-radius:99px;display:flex;align-items:center;justify-content:center;border:1.5px solid currentColor;flex:none}
+.step b{display:block;font-size:17px;font-weight:600}.step small{display:block;font-size:13px;opacity:.8}
+.story{margin:0;padding-left:22px;color:var(--muted);font-size:15px;display:flex;flex-direction:column;gap:4px}
+.foot{display:flex;justify-content:space-between;gap:8px;margin-top:auto}
+.foot .btn{width:auto;flex:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<noscript><h1>Polaris Deni</h1><p>Daftari la deni na vitabu vya duka, bila malipo. Washa JavaScript ili kutumia.</p></noscript>
+<script defer src="app.js"></script>
+
+</body>
+</html>
